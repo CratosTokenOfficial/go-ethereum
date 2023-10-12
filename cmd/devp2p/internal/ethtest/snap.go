@@ -23,11 +23,12 @@ import (
 	"math/rand"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/eth/protocols/snap"
 	"github.com/ethereum/go-ethereum/internal/utesting"
-	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/trie/trienode"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -210,13 +211,6 @@ type byteCodesTest struct {
 	expHashes int
 }
 
-var (
-	// emptyRoot is the known root hash of an empty trie.
-	emptyRoot = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
-	// emptyCode is the known hash of the empty EVM bytecode.
-	emptyCode = common.HexToHash("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")
-)
-
 // TestSnapGetByteCodes various forms of GetByteCodes requests.
 func (s *Suite) TestSnapGetByteCodes(t *utesting.T) {
 	// The halfchain import should yield these bytecodes
@@ -263,15 +257,15 @@ func (s *Suite) TestSnapGetByteCodes(t *utesting.T) {
 		},
 		// Empties
 		{
-			nBytes: 10000, hashes: []common.Hash{emptyRoot},
+			nBytes: 10000, hashes: []common.Hash{types.EmptyRootHash},
 			expHashes: 0,
 		},
 		{
-			nBytes: 10000, hashes: []common.Hash{emptyCode},
+			nBytes: 10000, hashes: []common.Hash{types.EmptyCodeHash},
 			expHashes: 1,
 		},
 		{
-			nBytes: 10000, hashes: []common.Hash{emptyCode, emptyCode, emptyCode},
+			nBytes: 10000, hashes: []common.Hash{types.EmptyCodeHash, types.EmptyCodeHash, types.EmptyCodeHash},
 			expHashes: 3,
 		},
 		// The existing bytecodes
@@ -363,7 +357,7 @@ func (s *Suite) TestSnapTrieNodes(t *utesting.T) {
 	for i := 1; i <= 65; i++ {
 		accPaths = append(accPaths, pathTo(i))
 	}
-	empty := emptyCode
+	empty := types.EmptyCodeHash
 	for i, tc := range []trieNodesTest{
 		{
 			root:      s.chain.RootAt(999),
@@ -536,11 +530,11 @@ func (s *Suite) snapGetAccountRange(t *utesting.T, tc *accRangeTest) error {
 	for i, key := range hashes {
 		keys[i] = common.CopyBytes(key[:])
 	}
-	nodes := make(light.NodeList, len(proof))
+	nodes := make(trienode.ProofList, len(proof))
 	for i, node := range proof {
 		nodes[i] = node
 	}
-	proofdb := nodes.NodeSet()
+	proofdb := nodes.Set()
 
 	var end []byte
 	if len(keys) > 0 {
